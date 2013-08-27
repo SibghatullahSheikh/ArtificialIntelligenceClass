@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Game of Life JS</title>
+		
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.4.1/less.min.js"></script>
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+		<style type="text/css">
+			.tile {
+				width:20px;
+				height: 20px;
+				border: 1px solid rgb(162, 162, 162);
+				float:left;
+			}
+			.row {
+				
+			}
+			.dead {
+				background-color:gray;
+			}
+			.alive {
+				background-color: rgb(202, 169, 99);
+			}
+			.clearfix:after {
+			  content: "";
+			  display: table;
+			  clear: both;
+			}
+			body {
+				margin-left:20px;
+			}
+		</style>
+
+
+		<script>
+			$(document).ready(function() {
+				function GameOfLife(rows, columns) {
+					this.row = rows;
+					this.col = columns;
+
+					this.nMatrix = newFilled2DArray(this.row, this.col, 0);
+					this.oMatrix = newFilled2DArray(this.row, this.col, 0);
+
+					console.log('GOL instantiated');
+					this.padOriginal();
+				}
+
+				/* Pad the GOL matrix with 9s on the perimeter */
+				GameOfLife.prototype.padOriginal = function() {
+					for(var x = 0; x < this.oMatrix.length; x++) {
+						this.oMatrix[x].splice(0, 0, 9);
+						this.oMatrix[x].splice(this.oMatrix.length+1, 0, 9);
+					}
+					this.oMatrix.push(newFilledArray(this.oMatrix[0].length, 9));
+					this.oMatrix.splice(0, 0, newFilledArray(this.oMatrix[0].length, 9));
+				}
+
+				/* Runs the algorithm on oMatrix and stores it in nMatrix */
+				GameOfLife.prototype.iterate = function() {
+					for(var x = 1; x < this.oMatrix.length-1; x++) {
+						for(var y = 1; y < this.oMatrix[x].length-1; y++) {
+							neighbors = new Array(8);
+							neighbors[0] = this.oMatrix[x-1][y-1];
+							neighbors[1] = this.oMatrix[x-1][y];
+							neighbors[2] = this.oMatrix[x-1][y+1];
+							neighbors[3] = this.oMatrix[x][y-1];
+							neighbors[4] = this.oMatrix[x][y+1];
+							neighbors[5] = this.oMatrix[x+1][y-1];
+							neighbors[6] = this.oMatrix[x+1][y];
+							neighbors[7] = this.oMatrix[x+1][y+1];
+
+							self = this.oMatrix[x][y];
+							neighborCount = arrayCount(neighbors, 1);
+							if(self == 0) {
+								if(neighborCount == 3) this.nMatrix[x-1][y-1] = 1;
+							}
+							if(self == 1) {
+								if(neighborCount <= 1 || neighborCount >= 4) this.nMatrix[x-1][y-1] = 0;
+								else this.nMatrix[x-1][y-1] = self;
+							}
+						}
+					}
+				}
+
+				GameOfLife.prototype.returnNewMatrix = function() {
+					return this.nMatrix;
+				}
+
+				/* Create div with number of rows and columns */
+				GameOfLife.prototype.populateContainer = function() {
+					for(var x = 0; x < this.row; x++) {
+						element = "<div class='r" + x + " row clearfix'></div>";
+						$("#gol_container").add(element).appendTo("#gol_container");
+
+						for(var y = 0; y < this.col; y++) {
+							element = "<div class='c" + y + " tile dead'></div>";							
+							$(".r" + x).add(element).appendTo(".r" + x);
+						}
+					}
+				}
+
+				/* Copy the display grid to oMatrix */
+				GameOfLife.prototype.fillOMatrixFromContainer = function() {
+					for(var x = 0; x < this.row; x++) {
+						for(var y = 0; y < this.col; y++) {
+							selector = ".r" + x + " .c" + y;
+							if($(selector).hasClass('alive')) this.oMatrix[x+1][y+1] = 1;
+							else this.oMatrix[x+1][y+1] = 0;
+						}
+					}
+				}
+
+				/* Fill the display grid with calculated values */
+				GameOfLife.prototype.fillContainerFromNMatrix = function() {
+					for(var x = 0; x < this.row; x++) {
+						for(var y = 0; y < this.col; y++) {
+							selector = ".r" + x + " .c" + y;
+							if(this.nMatrix[x][y]) {
+								$(selector).removeClass('dead');
+								$(selector).addClass('alive');
+							} else {
+								$(selector).removeClass('alive');
+								$(selector).addClass('dead');
+							}
+						}
+					}
+				}
+
+				var GOL = new GameOfLife(50,50);
+				GOL.populateContainer();
+				GOL.fillOMatrixFromContainer();
+
+
+
+				$("#start").click(function() {
+					loop = setInterval(function() {
+						GOL.fillOMatrixFromContainer();
+						GOL.iterate();
+						GOL.fillContainerFromNMatrix();
+					}, 100);
+				});
+
+				$("#stop").click(function() {
+					clearInterval(loop);
+				});
+
+				$("#next").click(function() {
+					GOL.fillOMatrixFromContainer();
+					GOL.iterate();
+					GOL.fillContainerFromNMatrix();
+				});
+
+
+				function arrayCount(arr, value) {
+					var count = 0;
+					for(var x = 0; x < arr.length; x++) {
+						if(arr[x] == value) count++;
+					}
+					return count;
+				}
+
+				function newFilledArray(len, val) {
+				    var rv = new Array(len);
+				    while (--len >= 0) {
+				        rv[len] = val;
+				    }
+				    return rv;
+				}
+
+				function newFilled2DArray(row, col, val) {
+				    var arr = [];
+					for(var x = 0; x < row; x++){
+					    arr[x] = [];    
+					    for(var y = 0; y < col; y++) arr[x][y] = val;    
+					}
+				    return arr;
+				}
+
+				$(".tile").click(function() {
+					if($(this).hasClass("dead")) {
+						$(this).removeClass('dead').addClass('alive');
+					} else {
+						$(this).removeClass('alive').addClass('dead');
+					}
+					
+				});
+			});
+				
+
+
+
+		</script>
+
+	</head>
+
+
+
+
+
+	<body>
+		<div id='gol_container'>
+		</div>
+		<div style='margin-top:20px;'>
+			<button id='start' type="button" class="btn btn-primary">Start Loop</button>
+			<button id='stop' type="button" class="btn btn-danger">Stop Loop</button>
+			<button id='next' type="button" class="btn btn-success">Next Iteration</button>
+		</div>
+
+	</body>
+</html>

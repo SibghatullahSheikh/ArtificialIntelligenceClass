@@ -1,0 +1,1 @@
+Homework and projects for an AI class i'm taking.
