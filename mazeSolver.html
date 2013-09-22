@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Maze Solver JS</title>
+		
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.4.1/less.min.js"></script>
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+		<style type="text/css">
+			body {
+				margin-top:5px;
+			}
+			.tile {
+				width:25px;
+				height: 25px;
+				border: 1px solid #AAAAAA;
+				float:left;
+				border-right: none;
+				border-top: none;
+			}
+			.row {
+				
+			}
+			.dead {
+				background-color:#EEEEEE;
+			}
+			.obstacle {
+				background-color: #555;
+			}
+			.beacon {
+				background-color: #d9534f;
+			}
+			.agent {
+				background-color:#3276b1;
+			}
+			.clearfix:after {
+			  content: "";
+			  display: table;
+			  clear: both;
+			}
+			body {
+				margin-left:20px;
+			}
+		</style>
+
+
+		<script>
+			$(document).ready(function() {
+				function maze(rows, columns) {
+					this.row = rows;
+					this.col = columns;
+
+					//this.nMatrix = newFilled2DArray(this.row, this.col, 0);
+					//this.oMatrix = newFilled2DArray(this.row, this.col, 0);
+
+					console.log('GOL instantiated');
+					this.padOriginal();
+				}
+
+				oMatrix = newFilled2DArray(14, 18, 0);
+
+				function fillMatrixFromContainer() {
+					for(var x = 0; x < 12; x++) {
+						for(var y = 0; y < 16; y++) {
+							selector = ".r" + x + " .c" + y;
+							if($(selector).hasClass('obstacle')) oMatrix[x+1][y+1] = 1;
+							else if($(selector).hasClass('agent')) oMatrix[x+1][y+1] = 2;
+							else oMatrix[x+1][y+1] = 0;
+						}
+					}
+				}
+
+
+				/* Pad the GOL matrix with 9s on the perimeter */
+				function padOriginal() {
+					for(var x = 0; x < oMatrix.length; x++) {
+						oMatrix[x].splice(0, 0, 9);
+						oMatrix[x].splice(oMatrix.length+1, 0, 9);
+					}
+					oMatrix.push(newFilledArray(oMatrix[0].length, 9));
+					oMatrix.splice(0, 0, newFilledArray(oMatrix[0].length, 9));
+				}
+
+				/* Runs the algorithm on oMatrix and stores it in nMatrix */
+				maze.prototype.iterate = function() {
+							neighbors = new Array(8);
+							neighbors[0] = oMatrix[x-1][y-1];
+							neighbors[1] = oMatrix[x-1][y];
+							neighbors[2] = oMatrix[x-1][y+1];
+							neighbors[3] = oMatrix[x][y-1];
+							neighbors[4] = oMatrix[x][y+1];
+							neighbors[5] = oMatrix[x+1][y-1];
+							neighbors[6] = oMatrix[x+1][y];
+							neighbors[7] = oMatrix[x+1][y+1];
+				}
+
+
+
+				$("#start").click(function() {
+					loop = setInterval(function() {
+						GOL.fillOMatrixFromContainer();
+						GOL.iterate();
+						GOL.fillContainerFromNMatrix();
+					}, 100);
+				});
+
+				$("#stop").click(function() {
+					clearInterval(loop);
+				});
+
+				$("#next").click(function() {
+					GOL.fillOMatrixFromContainer();
+					GOL.iterate();
+					GOL.fillContainerFromNMatrix();
+				});
+
+
+				function getAgentCoordinateCol() {
+					return $('.agent')[0].classList[0].replace(/[^0-9\.]/g, '');
+				}
+
+				function getAgentCoordinateRow() {
+					return $('.agent').parent()[0].classList[0].replace(/[^0-9\.]/g, '');
+				}
+
+				function getNeighbors(col, row) {
+					neighbors = [0,0,0,0,0,0,0,0];
+					col = parseInt(col);
+					row = parseInt(row);
+					neighbors[0] = $('.r'+(row-1)).find('.c'+(col-1)).hasClass('dead');
+					neighbors[1] = $('.r'+(row-1)).find('.c'+col).hasClass('dead');
+					neighbors[2] = $('.r'+(row-1)).find('.c'+(col+1)).hasClass('dead');
+					neighbors[3] = $('.r'+row).find('.c'+(col-1)).hasClass('dead');
+					neighbors[4] = $('.r'+row).find('.c'+(col+1)).hasClass('dead');
+					neighbors[5] = $('.r'+(row+1)).find('.c'+(col-1)).hasClass('dead');
+					neighbors[6] = $('.r'+(row+1)).find('.c'+col).hasClass('dead');
+					neighbors[7] = $('.r'+(row+1)).find('.c'+(col+1)).hasClass('dead');
+					return neighbors;
+				}
+
+
+				function checkNeighborsForBeacon(col, row) {
+					neighbors = [0,0,0,0,0,0,0,0];
+					col = parseInt(col);
+					row = parseInt(row);
+					neighbors[0] = $('.r'+(row-1)).find('.c'+(col-1)).hasClass('beacon');
+					neighbors[1] = $('.r'+(row-1)).find('.c'+col).hasClass('beacon');
+					neighbors[2] = $('.r'+(row-1)).find('.c'+(col+1)).hasClass('beacon');
+					neighbors[3] = $('.r'+row).find('.c'+(col-1)).hasClass('beacon');
+					neighbors[4] = $('.r'+row).find('.c'+(col+1)).hasClass('beacon');
+					neighbors[5] = $('.r'+(row+1)).find('.c'+(col-1)).hasClass('beacon');
+					neighbors[6] = $('.r'+(row+1)).find('.c'+col).hasClass('beacon');
+					neighbors[7] = $('.r'+(row+1)).find('.c'+(col+1)).hasClass('beacon');
+					//console.log();
+					if(neighbors.indexOf(true) == -1) return 0;
+					else return 1;
+				}
+
+				function getPercepts(neighbors) {
+					percepts = [0,0,0,0];
+					if(!neighbors[1] || !neighbors[2]) percepts[0] = 1;
+					if(!neighbors[4] || !neighbors[7]) percepts[1] = 1;
+					if(!neighbors[5] || !neighbors[6]) percepts[2] = 1;
+					if(!neighbors[0] || !neighbors[3]) percepts[3] = 1;
+					return percepts;
+				}
+
+				function returnMoveDirection(percepts) {
+					NORTH = 1;
+					EAST = 2;
+					SOUTH = 3;
+					WEST = 4;
+					for(x = 0; x<8; x++) {
+						if(x == 7) return NORTH;
+						if(percepts[x] == 1) break;
+					}
+					if(percepts[0] == 1 && percepts[1] == 0) return EAST;
+					if(percepts[1] == 1 && percepts[2] == 0) return SOUTH;
+					if(percepts[2] == 1 && percepts[3] == 0) return WEST;
+					if(percepts[3] == 1 && percepts[0] == 0) return NORTH;
+				}
+
+				function moveAgent(originalCol, originalRow, targetCol, targetRow) {
+					$('.r'+originalRow).find('.c'+originalCol).removeClass('agent');
+					$('.r'+originalRow).find('.c'+originalCol).addClass('dead');
+					$('.r'+targetRow).find('.c'+targetCol).addClass('agent');
+					$('.r'+targetRow).find('.c'+targetCol).removeClass('dead');
+				}
+
+				function arrayCount(arr, value) {
+					var count = 0;
+					for(var x = 0; x < arr.length; x++) {
+						if(arr[x] == value) count++;
+					}
+					return count;
+				}
+
+				function newFilledArray(len, val) {
+				    var rv = new Array(len);
+				    while (--len >= 0) {
+				        rv[len] = val;
+				    }
+				    return rv;
+				}
+
+				function newFilled2DArray(row, col, val) {
+				    var arr = [];
+					for(var x = 0; x < row; x++){
+					    arr[x] = [];    
+					    for(var y = 0; y < col; y++) arr[x][y] = val;    
+					}
+				    return arr;
+				}
+
+				$(".tile").click(function() {
+					if($(this).hasClass("dead")) {
+						$(this).removeClass('dead').addClass('obstacle');
+					} else {
+						$(this).removeClass('obstacle').addClass('dead');
+					}
+				});
+
+				$("#log").click(function() {
+					//console.log(getNeighbors(getAgentCoordinateCol(), getAgentCoordinateRow()));
+					//console.log(getAgentCoordinateRow());
+					direction = returnMoveDirection(getPercepts(getNeighbors(getAgentCoordinateCol(), getAgentCoordinateRow())));
+					if(checkNeighborsForBeacon(getAgentCoordinateCol(), getAgentCoordinateRow())) {
+						$("#beaconIndicator").html("Beacon Found");
+					}
+					direction = parseInt(direction);
+					NORTH = 1;
+					EAST = 2;
+					SOUTH = 3;
+					WEST = 4;
+					console.log(direction);
+					origCol = parseInt(getAgentCoordinateCol());
+					origRow = parseInt(getAgentCoordinateRow());
+					if(direction == NORTH) moveAgent(origCol, origRow, origCol, origRow-1);
+					if(direction == EAST) moveAgent(origCol, origRow, origCol+1, origRow);
+					if(direction == SOUTH) moveAgent(origCol, origRow, origCol, origRow+1);
+					if(direction == WEST) moveAgent(origCol, origRow, origCol-1, origRow);
+				});
+			});
+				
+
+
+			
+		</script>
+
+	</head>
+
+
+
+
+
+	<body>
+<div id="gol_container">
+	<div class="r0 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile beacon"></div>
+		<div class="c2 tile beacon"></div>
+		<div class="c3 tile obstacle"></div>
+		<div class="c4 tile obstacle"></div>
+		<div class="c5 tile obstacle"></div>
+		<div class="c6 tile obstacle"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile obstacle"></div>
+		<div class="c10 tile obstacle"></div>
+		<div class="c11 tile obstacle"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r1 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile dead"></div>
+		<div class="c8 tile dead"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r2 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile dead"></div>
+		<div class="c8 tile dead"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r3 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile dead"></div>
+		<div class="c8 tile dead"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r4 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile obstacle"></div>
+		<div class="c4 tile obstacle"></div>
+		<div class="c5 tile obstacle"></div>
+		<div class="c6 tile obstacle"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile dead"></div>
+		<div class="c13 tile dead"></div>
+		<div class="c14 tile dead"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r5 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile obstacle"></div>
+		<div class="c4 tile obstacle"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile dead"></div>
+		<div class="c13 tile dead"></div>
+		<div class="c14 tile dead"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r6 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile obstacle"></div>
+		<div class="c4 tile obstacle"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile dead"></div>
+		<div class="c13 tile dead"></div>
+		<div class="c14 tile dead"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r7 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile dead"></div>
+		<div class="c8 tile dead"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r8 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile agent"></div>
+		<div class="c6 tile dead"></div>
+		<div class="c7 tile dead"></div>
+		<div class="c8 tile dead"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r9 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile obstacle"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r10 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile dead"></div>
+		<div class="c2 tile dead"></div>
+		<div class="c3 tile dead"></div>
+		<div class="c4 tile dead"></div>
+		<div class="c5 tile dead"></div>
+		<div class="c6 tile obstacle"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile dead"></div>
+		<div class="c10 tile dead"></div>
+		<div class="c11 tile dead"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+	<div class="r11 row clearfix">
+		<div class="c0 tile obstacle"></div>
+		<div class="c1 tile obstacle"></div>
+		<div class="c2 tile obstacle"></div>
+		<div class="c3 tile obstacle"></div>
+		<div class="c4 tile obstacle"></div>
+		<div class="c5 tile obstacle"></div>
+		<div class="c6 tile obstacle"></div>
+		<div class="c7 tile obstacle"></div>
+		<div class="c8 tile obstacle"></div>
+		<div class="c9 tile obstacle"></div>
+		<div class="c10 tile obstacle"></div>
+		<div class="c11 tile obstacle"></div>
+		<div class="c12 tile obstacle"></div>
+		<div class="c13 tile obstacle"></div>
+		<div class="c14 tile obstacle"></div>
+		<div class="c15 tile obstacle"></div>
+	</div>
+</div>		
+		<div style='margin-top:20px;'>
+			<button id='log' type="button" class="btn btn-success">Next Interation</button>
+		</div>
+		<h1 id='beaconIndicator'>Beacon Not Reached</h1>
+
+	</body>
+</html>

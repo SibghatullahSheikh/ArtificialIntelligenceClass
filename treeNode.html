@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>TreeNode JS</title>
+		
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="//rawgithub.com/carhartl/jquery-cookie/master/jquery.cookie.js"></script>
+		<script src="//rawgithub.com/douglascrockford/JSON-js/master/cycle.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.4.1/less.min.js"></script>
+		<script src="md5.js"></script>
+
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+		<style type="text/css">
+			.tile {
+				width:20px;
+				height: 20px;
+				border: 1px solid rgb(162, 162, 162);
+				float:left;
+			}
+			.row {
+				
+			}
+			.dead {
+				background-color:gray;
+			}
+			.alive {
+				background-color: rgb(202, 169, 99);
+			}
+			.clearfix:after {
+			  content: "";
+			  display: table;
+			  clear: both;
+			}
+			body {
+				margin-left:20px;
+			}
+		</style>
+
+
+		<script>
+			$(document).ready(function() {
+				function treeNode(pparent, pvalue, pleft, pright) {
+					this.value = pvalue;
+					this.left = pleft;
+					this.right = pright;
+					this.parent = pparent;
+					if (arguments.length == 1) {
+				        for (var prop in pparent) this[prop] = pparent[prop];
+
+				    }
+				}
+
+				treeNode.prototype.isLeaf = function() {
+					if(this.left == null && this.right == null) return 1;
+					else return 0;
+				}
+
+				function startTree() {
+					start = new treeNode(null, "Is it an animal?", null, null);
+					temp = new treeNode(null, "Is it an animal?", new treeNode(start, "Bamboo", null, null), new treeNode(start, "Tiger", null, null));
+					return temp;
+				}
+
+				function playGame(current) {
+					while(!current.isLeaf()) {
+						if(prompt(current.value)) current = current.right;
+						else current = current.left;
+					}
+
+					if(prompt("Is it a " + current.value + "? (Y/N)").toLowerCase().indexOf("y") == -1) {
+						temp = current.value;
+						current.value = prompt("What makes it different?");
+						current.left = new treeNode(current, temp, null, null);
+						current.right = new treeNode(current, prompt("What did you think of?"), null, null);
+					} else {
+						//if(prompt("Is it a " + current.value + "? (Y/N)").toLowerCase().indexOf("y") == -1) {
+						//}
+						alert("I KNEW IT");
+					}
+				}
+
+				function visit(node) {
+					console.log(node.parent);
+					console.log(node);
+					console.log(node.value);
+					console.log(hex_md5(JSON.stringify(node.parent)));
+					console.log(hex_md5(JSON.stringify(node)));
+					console.log("");
+				}
+				function preorder(node) {
+					if(node == null) return;
+					visit(node);
+					preorder(node.left);
+					preorder(node.right);
+  				}
+
+				// Retreive cookie if it exists, if not then create a new tree
+				if($.cookie('gameData')) {
+					json = $.cookie('gameData');
+					root = new treeNode(JSON.parse(json, function(k, v) { 
+						//console.log(v != null && typeof v === 'object');
+						if(v != null && typeof v === 'object') return new treeNode(v);
+						else return v;
+					}));
+					console.log(root);
+				} else {
+					root = startTree();
+				}
+
+				$("#start").click(function() {
+					while(1) {
+						console.log(root);
+						playGame(root);
+						console.log(root); // Save object to cookie
+						console.log(JSON.decycle(root)); // Avoid circular reference
+						$.cookie('gameData', JSON.stringify(JSON.decycle(root)), { expires: 1 });
+						console.log("saved cookie");
+					}
+				});
+
+				$("#removeCookie").click(function() {
+					$.removeCookie("gameData");
+				});
+
+				$("#GPlogger").click(function() {
+					console.log(root);
+					console.log("GPLOG");
+					preorder(root);
+				});
+			});
+				
+
+
+
+		</script>
+
+	</head>
+
+
+
+
+
+	<body>
+		<div id='gol_container'>
+		</div>
+		<div style='margin-top:250px;'>
+			<div id="textbox" style="text-align: center;">
+				<h1 id='question'>Animal Guessing Game</h1>
+				<button id="start" type="button" class="btn btn-primary">Start Game</button>
+				<button id="removeCookie" type="button" class="btn btn-danger">Clear Saved Data</button>
+				<button id="GPlogger" type="button" class="btn btn-success">Traverse</button>
+			</div>
+		</div>
+
+	</body>
+</html>

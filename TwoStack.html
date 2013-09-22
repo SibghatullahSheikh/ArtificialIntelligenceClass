@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Two Stack JS</title>
+		
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.4.1/less.min.js"></script>
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+
+		<style type="text/css">
+			.focused {
+				border-color: rgba(82,168,236,.8);
+				outline: 0;
+				outline: thin dotted \9;
+				-moz-box-shadow: 0 0 8px rgba(82,168,236,.6);
+				box-shadow: 0 0 8px rgba(82,168,236,.6);
+			}
+			#inputBox {
+				width: 250px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			html {
+				zoom:2;
+			}
+		</style>
+		
+		<script>
+			$(document).ready(function() {
+				$('input').on('input',function(e){
+					console.log(" ");
+					if($('#inputBox').val().length == 0) $("#result").html("0");
+					var numberStack = new Array(0);
+					var operatorStack = new Array(0);
+
+					var rawInput = '(' + $('#inputBox').val() + ')))';
+					for(x = 0; x < rawInput.length; x++) {
+						letter = rawInput.charAt(x);
+						if(letter == ' ' || letter == '(') continue; // Skip whitespace and left parantheses
+
+						if(!isNaN(letter)) { // If it is a digit
+							console.log("DIGIT");
+							numberStack.push(letter);
+							continue;
+						}
+
+						if(letter == "*" || letter == "+" || letter == "-" || letter == "/") {
+							operatorStack.push(letter);
+						}
+
+						if(letter == ')') {
+							digitOne = numberStack.splice(-1, 1); // Remove last element of number stack
+							digitTwo = numberStack.splice(-1, 1); 
+							operator = operatorStack.splice(-1, 1); 
+							returnValue = eval(digitOne + operator + digitTwo);
+							numberStack.push(returnValue);
+						}
+
+					}
+
+					$("#result").html(numberStack[numberStack.length-1]);
+
+
+
+					 console.log($('#inputBox').val());
+				});
+			});
+
+
+		</script>
+
+
+
+	</head>
+
+
+
+
+
+	<body>
+		<div id='textbox' style='text-align: center;position: absolute;left: 50%;top: 50%;margin-left: -125px;margin-top: -52px;'>
+			<input type="text" class="form-control focused" id="inputBox" placeholder="Expression">
+			<h1 id='result'>0</h1>
+		</div>
+		
+
+	</body>
+</html>
